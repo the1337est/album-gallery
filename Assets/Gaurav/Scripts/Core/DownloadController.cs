@@ -8,6 +8,11 @@ namespace Gaurav.Scripts.Core
 {
     public class DownloadController : MonoBehaviour
     {
+        /// <summary>
+        /// Downloads and returns string data from url
+        /// </summary>
+        /// <param name="url">source url</param>
+        /// <returns>content from URL</returns>
         public async Task<string> DownloadContent(string url)
         {
             HttpClient client = new HttpClient();
@@ -15,11 +20,30 @@ namespace Gaurav.Scripts.Core
             return response;
         }
 
+        /// <summary>
+        /// Tries to parse a json into a given type T
+        /// </summary>
+        /// <param name="json">json string</param>
+        /// <typeparam name="T">generic type to parse in</typeparam>
+        /// <returns>parsed T or default</returns>
         public T GetJsonAs<T>(string json)
         {
-            return JsonConvert.DeserializeObject<T>(json);
+            try
+            {
+                return JsonConvert.DeserializeObject<T>(json);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[DownloadController] Error deserialing json: {ex.Message}]");
+                return default;
+            }
         }
 
+        /// <summary>
+        /// Gets a texture from URL, and returns DownloadResult of Texture2D
+        /// </summary>
+        /// <param name="url">source url of the texture</param>
+        /// <returns>DownloadResult of Texture2D</returns>
         public static async Task<DownloadResult<Texture2D>> GetTexture(string url)
         {
             var downloadResult = new DownloadResult<Texture2D>();
@@ -43,6 +67,10 @@ namespace Gaurav.Scripts.Core
         }
     }
 
+    /// <summary>
+    /// Generic struct that represents result of a download and its data
+    /// </summary>
+    /// <typeparam name="T">Type for the data</typeparam>
     public struct DownloadResult<T>
     {
         public bool Success { get; set; }
