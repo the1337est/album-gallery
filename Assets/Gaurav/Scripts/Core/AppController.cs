@@ -8,7 +8,11 @@ namespace Gaurav.Scripts.Core
     public class AppController : MonoBehaviour
     {
 
+        [Header("Controllers")]
+        [SerializeField] private CameraController _cameraController;
         [SerializeField] private DownloadController _downloadController;
+        
+        [Header("Buttons")]
         [SerializeField] private Button _logButton;
         [SerializeField] private Button _addButton;
         [SerializeField] private Button _removeButton;
@@ -16,22 +20,19 @@ namespace Gaurav.Scripts.Core
         [SerializeField] private Button _scrollLeftButton;
         [SerializeField] private Button _scrollRightButton;
 
+        [Header("Misc")]
         [SerializeField] private Transform _albumContainer;
         [SerializeField] private AlbumEntry _albumEntryPrefab;
-    
+        
+        [Header("Texture references")]
         public Texture2D LoadingTexture;
         public Texture2D ErrorTexture;
         public static Texture2D TestImage;
-    
-        private Transform _cameraTransform;
-        private Vector3 _cameraPos;
-        private Vector3 _cameraTargetPos;
-        private const float _cameraPanSpeed = 10f;
-    
+        
         private List<AlbumEntryData> _albumCatalog;
-        private const string _apiUrl = "https://jsonplaceholder.typicode.com/photos";
-    
         private Dictionary<string, AlbumEntry> _albumEntries = new Dictionary<string, AlbumEntry>();
+        
+        private const string _apiUrl = "https://jsonplaceholder.typicode.com/photos";
     
         private int _currentIndex = 0;
         private int _focusIndex = 0;
@@ -42,6 +43,7 @@ namespace Gaurav.Scripts.Core
 
         private void Awake()
         {
+            //singleton
             if (Instance == null)
             {
                 Instance = this;
@@ -56,9 +58,7 @@ namespace Gaurav.Scripts.Core
             }
 
             _albumCatalog = new List<AlbumEntryData>();
-            _cameraTransform = Camera.main.transform;
-            _cameraPos = _cameraTransform.position;
-            _cameraTargetPos = _cameraPos;
+            _cameraController.Initialize();
         }
 
         private void Start()
@@ -74,6 +74,9 @@ namespace Gaurav.Scripts.Core
             RemoveListeners();
         }
 
+        /// <summary>
+        /// Adds listeners
+        /// </summary>
         private void AddListeners()
         {
             AlbumEntry.OnClicked += SelectAlbumEntry;
@@ -86,6 +89,9 @@ namespace Gaurav.Scripts.Core
             _scrollRightButton.onClick.AddListener(ScrollRight);
         }
     
+        /// <summary>
+        /// Removes listeners
+        /// </summary>
         private void RemoveListeners()
         {
             AlbumEntry.OnClicked -= SelectAlbumEntry;
@@ -96,28 +102,20 @@ namespace Gaurav.Scripts.Core
         
             _scrollLeftButton.onClick.RemoveListener(ScrollLeft);
             _scrollRightButton.onClick.RemoveListener(ScrollRight);
+        }
         
-        }
-
-        private void Update()
-        {
-            var temp = Mathf.Abs(_cameraTargetPos.x - _cameraPos.x);
-            if (temp > 0.01f)
-            {
-                _cameraTransform.position = Vector3.Lerp(_cameraTransform.position, _cameraTargetPos, Time.deltaTime * _cameraPanSpeed);
-            }
-            else
-            {
-                _cameraTransform.position = _cameraTargetPos;
-            }
-        }
-
+        /// <summary>
+        /// Downloads album data from the API
+        /// </summary>
         private async void DownloadData()
         { 
             var json= await _downloadController.DownloadContent(_apiUrl);
             _albumCatalog = _downloadController.GetJsonAs<List<AlbumEntryData>>(json);
         }
 
+        /// <summary>
+        /// Adds a new album entry until there's a new one available in the album catalog
+        /// </summary>
         private void AddAlbumEntry()
         {
             if (_albumCatalog != null && _albumCatalog.Count > _currentIndex + 1)
@@ -132,8 +130,12 @@ namespace Gaurav.Scripts.Core
             }
         }
     
+        /// <summary>
+        /// Removes currently selected album entry
+        /// </summary>
         private void RemoveCurrentAlbumEntry()
         {
+            //known issue / out of scope: doesn't adjust positions to fill any gaps caused by removing an album entry
             if (_currentAlbumEntry != null && _albumEntries.ContainsKey(_currentAlbumEntry.Data.Id))
             {
                 _albumEntries.Remove(_currentAlbumEntry.Data.Id);
@@ -142,12 +144,18 @@ namespace Gaurav.Scripts.Core
                 UpdateRemoveButton();
             }
         }
-
+        
+        /// <summary>
+        /// Updates state of Remove Button
+        /// </summary>
         private void UpdateRemoveButton()
         {
             _removeButton.interactable = _currentAlbumEntry != null;
         }
-    
+        
+        /// <summary>
+        /// Updates state of navigation buttons based on current focusIndex
+        /// </summary>
         private void UpdateNavigationButtons()
         {
             //known bug: this will allow scrolling all the way from index 1 to end, even if those entries have been removed
@@ -155,6 +163,10 @@ namespace Gaurav.Scripts.Core
             _scrollRightButton.interactable = _focusIndex < _currentIndex;
         }
 
+        /// <summary>
+        /// Selects an album entry and deselects previously selected one
+        /// </summary>
+        /// <param name="entry"></param>
         private void SelectAlbumEntry(AlbumEntry entry)
         {
             if (entry != null)
@@ -165,7 +177,7 @@ namespace Gaurav.Scripts.Core
                 }
                 
                 int.TryParse(entry.Data.Id, out _focusIndex);
-                _cameraTargetPos = new Vector3((_focusIndex - 1) * 2, _cameraPos.y, _cameraPos.z);
+                _cameraController.SetTargetX((_focusIndex - 1) * 2);
                 entry.Select();
                 _currentAlbumEntry = entry;
             }
@@ -173,6 +185,9 @@ namespace Gaurav.Scripts.Core
             UpdateNavigationButtons();
         }
 
+        /// <summary>
+        /// Logs all active Album Entry instances to Console
+        /// </summary>
         private void LogAlbumEntryInstances()
         {
             if (_albumEntries != null && _albumEntries.Count > 0)
@@ -184,27 +199,32 @@ namespace Gaurav.Scripts.Core
             }
         }
 
+        /// <summary>
+        /// Scrolls View to the left without explicitly selecting an album entry 
+        /// </summary>
         private void ScrollLeft()
         {
             if (_focusIndex > 1)
             {
                 _focusIndex--;
-                _cameraTargetPos = new Vector3((_focusIndex - 1) * 2, _cameraPos.y, _cameraPos.z);
+                _cameraController.SetTargetX((_focusIndex - 1) * 2);
             }
 
             UpdateNavigationButtons();
         }
 
+        /// <summary>
+        /// Scrolls View to the right without explicitly selecting an album entry 
+        /// </summary>
         private void ScrollRight()
         {
             if (_focusIndex < _currentIndex)
             {
                 _focusIndex++;
-                _cameraTargetPos = new Vector3((_focusIndex - 1) * 2, _cameraPos.y, _cameraPos.z);
+                _cameraController.SetTargetX((_focusIndex - 1) * 2);
             }
         
             UpdateNavigationButtons();
         }
-
     }
 }

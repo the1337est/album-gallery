@@ -1,8 +1,8 @@
-using System.Collections;
-using System.Collections.Generic;
 using Newtonsoft.Json;
-using UnityEngine;
 
+/// <summary>
+/// Data struct for an Album Entry. JsonProperty attribute is from Newtonsoft Json
+/// </summary>
 [System.Serializable]
 public struct AlbumEntryData
 {
