@@ -44,3 +44,7 @@ Open the project in Unity 2022.3.32.
 Open the Gallery scene from Assets/Gaurav/Scenes/Gallery.scene.
 Set the Game View aspect ratio to either 9:16 (Mobile) or 16:9 (Widescreen) for optimal viewing.
 Play the scene to start the gallery app.
+
+# Possible Improvements
+Object pool to reuse Album Entry components to avoid potentially high number of objects loaded in memory
+Optimize number of HttpClient to handle async downloads. Currently a new HttpClient is initialized to handle each download
